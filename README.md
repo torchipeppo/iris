@@ -35,6 +35,7 @@ If you find this code or paper useful, please use the following reference:
 ## Setup
 
 - Install [PyTorch](https://pytorch.org/get-started/locally/) (torch and torchvision). Code developed with torch==1.11.0 and torchvision==0.12.0.
+- Downgrade some things in order to allow the correct installation of gym 0.21 later: `pip install -r requirements-PRE.txt`
 - Install [other dependencies](requirements.txt): `pip install -r requirements.txt`
 - Warning: Atari ROMs will be downloaded with the dependencies, which means that you acknowledge that you have the license to use them.
 
