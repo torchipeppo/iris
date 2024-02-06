@@ -1,7 +1,7 @@
 # Custom
 wandb
 .vscode
-outputs
+outputs*
 results/figures
 slurm*
 experiments
