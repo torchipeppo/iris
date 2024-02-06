@@ -6,7 +6,7 @@ import torch
 
 @torch.no_grad()
 def make_reconstructions_from_batch(batch, save_dir, epoch, tokenizer):
-    check_batch(batch)
+    # check_batch(batch)
 
     original_frames = tensor_to_np_frames(rearrange(batch['observations'], 'b t c h w -> b t h w c'))
     all = [original_frames]
@@ -37,7 +37,7 @@ def check_float_btw_0_1(inputs):
 
 @torch.no_grad()
 def generate_reconstructions_with_tokenizer(batch, tokenizer):
-    check_batch(batch)
+    # check_batch(batch)
     inputs = rearrange(batch['observations'], 'b t c h w -> (b t) c h w')
     outputs = reconstruct_through_tokenizer(inputs, tokenizer)
     b, t, _, _, _ = batch['observations'].size()

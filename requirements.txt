@@ -8,3 +8,5 @@ psutil==5.8.0
 pygame==2.1.2
 tqdm==4.62.3
 wandb==0.12.7
+hickle==5.0.2
+imageio==2.33.1

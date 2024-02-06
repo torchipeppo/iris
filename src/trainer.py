@@ -23,6 +23,8 @@ from models.actor_critic import ActorCritic
 from models.world_model import WorldModel
 from utils import configure_optimizer, EpisodeDirManager, set_seed
 
+from phyre.dataset import PhyreVideoDataset
+
 
 class Trainer:
     def __init__(self, cfg: DictConfig) -> None:
@@ -62,40 +64,45 @@ class Trainer:
         episode_manager_test = EpisodeDirManager(self.episode_dir / 'test', max_num_episodes=cfg.collection.test.num_episodes_to_save)
         self.episode_manager_imagination = EpisodeDirManager(self.episode_dir / 'imagination', max_num_episodes=cfg.evaluation.actor_critic.num_episodes_to_save)
 
-        def create_env(cfg_env, num_envs):
-            env_fn = partial(instantiate, config=cfg_env)
-            return MultiProcessEnv(env_fn, num_envs, should_wait_num_envs_ratio=1.0) if num_envs > 1 else SingleProcessEnv(env_fn)
+        # def create_env(cfg_env, num_envs):
+        #     env_fn = partial(instantiate, config=cfg_env)
+        #     return MultiProcessEnv(env_fn, num_envs, should_wait_num_envs_ratio=1.0) if num_envs > 1 else SingleProcessEnv(env_fn)
 
-        if self.cfg.training.should:
-            train_env = create_env(cfg.env.train, cfg.collection.train.num_envs)
-            self.train_dataset = instantiate(cfg.datasets.train)
-            self.train_collector = Collector(train_env, self.train_dataset, episode_manager_train)
+        # if self.cfg.training.should:
+        #     train_env = create_env(cfg.env.train, cfg.collection.train.num_envs)
+        #     self.train_dataset = instantiate(cfg.datasets.train)
+        #     self.train_collector = Collector(train_env, self.train_dataset, episode_manager_train)
 
-        if self.cfg.evaluation.should:
-            test_env = create_env(cfg.env.test, cfg.collection.test.num_envs)
-            self.test_dataset = instantiate(cfg.datasets.test)
-            self.test_collector = Collector(test_env, self.test_dataset, episode_manager_test)
+        # if self.cfg.evaluation.should:
+        #     test_env = create_env(cfg.env.test, cfg.collection.test.num_envs)
+        #     self.test_dataset = instantiate(cfg.datasets.test)
+        #     self.test_collector = Collector(test_env, self.test_dataset, episode_manager_test)
 
-        assert self.cfg.training.should or self.cfg.evaluation.should
-        env = train_env if self.cfg.training.should else test_env
+        # assert self.cfg.training.should or self.cfg.evaluation.should
+        # env = train_env if self.cfg.training.should else test_env
 
-        tokenizer = instantiate(cfg.tokenizer)
-        world_model = WorldModel(obs_vocab_size=tokenizer.vocab_size, act_vocab_size=env.num_actions, config=instantiate(cfg.world_model))
-        actor_critic = ActorCritic(**cfg.actor_critic, act_vocab_size=env.num_actions)
-        self.agent = Agent(tokenizer, world_model, actor_critic).to(self.device)
-        print(f'{sum(p.numel() for p in self.agent.tokenizer.parameters())} parameters in agent.tokenizer')
-        print(f'{sum(p.numel() for p in self.agent.world_model.parameters())} parameters in agent.world_model')
-        print(f'{sum(p.numel() for p in self.agent.actor_critic.parameters())} parameters in agent.actor_critic')
+        dataset = PhyreVideoDataset("/home/francesco/Universita/PhD/src/Micheli x STEVE/phyre-dataset/00002")
+        # dataset = PhyreVideoDataset("/home/francesco-petri/phyre-dataset/PHYRE_1fps_p100n400/full/00002")
+        self.train_dataset = dataset
+        self.test_dataset = dataset
 
-        self.optimizer_tokenizer = torch.optim.Adam(self.agent.tokenizer.parameters(), lr=cfg.training.learning_rate)
-        self.optimizer_world_model = configure_optimizer(self.agent.world_model, cfg.training.learning_rate, cfg.training.world_model.weight_decay)
-        self.optimizer_actor_critic = torch.optim.Adam(self.agent.actor_critic.parameters(), lr=cfg.training.learning_rate)
+        self.tokenizer = instantiate(cfg.tokenizer)
+        # world_model = WorldModel(obs_vocab_size=tokenizer.vocab_size, act_vocab_size=env.num_actions, config=instantiate(cfg.world_model))
+        # actor_critic = ActorCritic(**cfg.actor_critic, act_vocab_size=env.num_actions)
+        # self.agent = Agent(tokenizer, world_model, actor_critic).to(self.device)
+        print(f'{sum(p.numel() for p in self.tokenizer.parameters())} parameters in tokenizer')
+        # print(f'{sum(p.numel() for p in self.agent.world_model.parameters())} parameters in agent.world_model')
+        # print(f'{sum(p.numel() for p in self.agent.actor_critic.parameters())} parameters in agent.actor_critic')
 
-        if cfg.initialization.path_to_checkpoint is not None:
-            self.agent.load(**cfg.initialization, device=self.device)
+        self.optimizer_tokenizer = torch.optim.Adam(self.tokenizer.parameters(), lr=cfg.training.learning_rate)
+        # self.optimizer_world_model = configure_optimizer(self.agent.world_model, cfg.training.learning_rate, cfg.training.world_model.weight_decay)
+        # self.optimizer_actor_critic = torch.optim.Adam(self.agent.actor_critic.parameters(), lr=cfg.training.learning_rate)
 
-        if cfg.common.resume:
-            self.load_checkpoint()
+        # if cfg.initialization.path_to_checkpoint is not None:
+        #     self.agent.load(**cfg.initialization, device=self.device)
+
+        # if cfg.common.resume:
+        #     self.load_checkpoint()
 
     def run(self) -> None:
 
@@ -106,17 +113,17 @@ class Trainer:
             to_log = []
 
             if self.cfg.training.should:
-                if epoch <= self.cfg.collection.train.stop_after_epochs:
-                    to_log += self.train_collector.collect(self.agent, epoch, **self.cfg.collection.train.config)
+                # if epoch <= self.cfg.collection.train.stop_after_epochs:
+                #     to_log += self.train_collector.collect(self.agent, epoch, **self.cfg.collection.train.config)
                 to_log += self.train_agent(epoch)
 
             if self.cfg.evaluation.should and (epoch % self.cfg.evaluation.every == 0):
-                self.test_dataset.clear()
-                to_log += self.test_collector.collect(self.agent, epoch, **self.cfg.collection.test.config)
+                # self.test_dataset.clear()
+                # to_log += self.test_collector.collect(self.agent, epoch, **self.cfg.collection.test.config)
                 to_log += self.eval_agent(epoch)
 
-            if self.cfg.training.should:
-                self.save_checkpoint(epoch, save_agent_only=not self.cfg.common.do_checkpoint)
+            # if self.cfg.training.should:
+            #     self.save_checkpoint(epoch, save_agent_only=not self.cfg.common.do_checkpoint)
 
             to_log.append({'duration': (time.time() - start_time) / 3600})
             for metrics in to_log:
@@ -125,26 +132,26 @@ class Trainer:
         self.finish()
 
     def train_agent(self, epoch: int) -> None:
-        self.agent.train()
-        self.agent.zero_grad()
+        self.tokenizer.train()
+        self.tokenizer.zero_grad()
 
         metrics_tokenizer, metrics_world_model, metrics_actor_critic = {}, {}, {}
 
         cfg_tokenizer = self.cfg.training.tokenizer
-        cfg_world_model = self.cfg.training.world_model
-        cfg_actor_critic = self.cfg.training.actor_critic
+        # cfg_world_model = self.cfg.training.world_model
+        # cfg_actor_critic = self.cfg.training.actor_critic
 
         if epoch > cfg_tokenizer.start_after_epochs:
-            metrics_tokenizer = self.train_component(self.agent.tokenizer, self.optimizer_tokenizer, sequence_length=1, sample_from_start=True, **cfg_tokenizer)
-        self.agent.tokenizer.eval()
+            metrics_tokenizer = self.train_component(self.tokenizer, self.optimizer_tokenizer, sequence_length=1, sample_from_start=True, **cfg_tokenizer)
+        self.tokenizer.eval()
 
-        if epoch > cfg_world_model.start_after_epochs:
-            metrics_world_model = self.train_component(self.agent.world_model, self.optimizer_world_model, sequence_length=self.cfg.common.sequence_length, sample_from_start=True, tokenizer=self.agent.tokenizer, **cfg_world_model)
-        self.agent.world_model.eval()
+        # if epoch > cfg_world_model.start_after_epochs:
+        #     metrics_world_model = self.train_component(self.agent.world_model, self.optimizer_world_model, sequence_length=self.cfg.common.sequence_length, sample_from_start=True, tokenizer=self.agent.tokenizer, **cfg_world_model)
+        # self.agent.world_model.eval()
 
-        if epoch > cfg_actor_critic.start_after_epochs:
-            metrics_actor_critic = self.train_component(self.agent.actor_critic, self.optimizer_actor_critic, sequence_length=1 + self.cfg.training.actor_critic.burn_in, sample_from_start=False, tokenizer=self.agent.tokenizer, world_model=self.agent.world_model, **cfg_actor_critic)
-        self.agent.actor_critic.eval()
+        # if epoch > cfg_actor_critic.start_after_epochs:
+        #     metrics_actor_critic = self.train_component(self.agent.actor_critic, self.optimizer_actor_critic, sequence_length=1 + self.cfg.training.actor_critic.burn_in, sample_from_start=False, tokenizer=self.agent.tokenizer, world_model=self.agent.world_model, **cfg_actor_critic)
+        # self.agent.actor_critic.eval()
 
         return [{'epoch': epoch, **metrics_tokenizer, **metrics_world_model, **metrics_actor_critic}]
 
@@ -176,26 +183,26 @@ class Trainer:
 
     @torch.no_grad()
     def eval_agent(self, epoch: int) -> None:
-        self.agent.eval()
+        self.tokenizer.eval()
 
         metrics_tokenizer, metrics_world_model = {}, {}
 
         cfg_tokenizer = self.cfg.evaluation.tokenizer
-        cfg_world_model = self.cfg.evaluation.world_model
-        cfg_actor_critic = self.cfg.evaluation.actor_critic
+        # cfg_world_model = self.cfg.evaluation.world_model
+        # cfg_actor_critic = self.cfg.evaluation.actor_critic
 
         if epoch > cfg_tokenizer.start_after_epochs:
             metrics_tokenizer = self.eval_component(self.agent.tokenizer, cfg_tokenizer.batch_num_samples, sequence_length=1)
 
-        if epoch > cfg_world_model.start_after_epochs:
-            metrics_world_model = self.eval_component(self.agent.world_model, cfg_world_model.batch_num_samples, sequence_length=self.cfg.common.sequence_length, tokenizer=self.agent.tokenizer)
+        # if epoch > cfg_world_model.start_after_epochs:
+        #     metrics_world_model = self.eval_component(self.agent.world_model, cfg_world_model.batch_num_samples, sequence_length=self.cfg.common.sequence_length, tokenizer=self.agent.tokenizer)
 
-        if epoch > cfg_actor_critic.start_after_epochs:
-            self.inspect_imagination(epoch)
+        # if epoch > cfg_actor_critic.start_after_epochs:
+        #     self.inspect_imagination(epoch)
 
         if cfg_tokenizer.save_reconstructions:
             batch = self._to_device(self.test_dataset.sample_batch(batch_num_samples=3, sequence_length=self.cfg.common.sequence_length))
-            make_reconstructions_from_batch(batch, save_dir=self.reconstructions_dir, epoch=epoch, tokenizer=self.agent.tokenizer)
+            make_reconstructions_from_batch(batch, save_dir=self.reconstructions_dir, epoch=epoch, tokenizer=self.tokenizer)
 
         return [metrics_tokenizer, metrics_world_model]
 
