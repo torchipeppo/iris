@@ -81,12 +81,12 @@ class Trainer:
         # assert self.cfg.training.should or self.cfg.evaluation.should
         # env = train_env if self.cfg.training.should else test_env
 
-        dataset = PhyreVideoDataset("/home/francesco/Universita/PhD/src/Micheli x STEVE/phyre-dataset/00002")
-        # dataset = PhyreVideoDataset("/home/francesco-petri/phyre-dataset/PHYRE_1fps_p100n400/full/00002")
+        # dataset = PhyreVideoDataset("/home/francesco/Universita/PhD/src/Micheli x STEVE/phyre-dataset/00002")
+        dataset = PhyreVideoDataset("/home/francesco-petri/phyre-dataset/PHYRE_1fps_p100n400/full/00002")
         self.train_dataset = dataset
         self.test_dataset = dataset
 
-        self.tokenizer = instantiate(cfg.tokenizer)
+        self.tokenizer = instantiate(cfg.tokenizer).to(self.device)
         # world_model = WorldModel(obs_vocab_size=tokenizer.vocab_size, act_vocab_size=env.num_actions, config=instantiate(cfg.world_model))
         # actor_critic = ActorCritic(**cfg.actor_critic, act_vocab_size=env.num_actions)
         # self.agent = Agent(tokenizer, world_model, actor_critic).to(self.device)
@@ -192,7 +192,7 @@ class Trainer:
         # cfg_actor_critic = self.cfg.evaluation.actor_critic
 
         if epoch > cfg_tokenizer.start_after_epochs:
-            metrics_tokenizer = self.eval_component(self.agent.tokenizer, cfg_tokenizer.batch_num_samples, sequence_length=1)
+            metrics_tokenizer = self.eval_component(self.tokenizer, cfg_tokenizer.batch_num_samples, sequence_length=1)
 
         # if epoch > cfg_world_model.start_after_epochs:
         #     metrics_world_model = self.eval_component(self.agent.world_model, cfg_world_model.batch_num_samples, sequence_length=self.cfg.common.sequence_length, tokenizer=self.agent.tokenizer)

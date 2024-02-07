@@ -37,3 +37,6 @@ class PhyreVideoDataset(Dataset):
     
     def sample_batch(self, batch_num_samples=None, sequence_length=None, sample_from_start=None) -> Batch:
         return {"observations": self[random.randint(0, len(self)-1)][None, ...]}
+    
+    def traverse(self, batch_num_samples, chunk_size):
+        return [self.sample_batch()]
